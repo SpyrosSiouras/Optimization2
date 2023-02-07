@@ -1,0 +1,14 @@
+Generation: 118, Best fitness: 0.0344325, with coefficients: 
+1.30961
+1.00779
+0.503346
+0.695269
+1.58764
+Reached accuracy of: 0.035 in 118 generations, with 751385 function calls! 
+
+Reached MAX function calls of: 2000000! Overall Best found: 0.0917208, with coefficients: 
+1.54673
+1.15235
+0.67623
+0.55273
+1.281
