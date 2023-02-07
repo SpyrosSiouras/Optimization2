@@ -1,0 +1,2 @@
+g++ oop_ga.cpp -o oop
+./oop_ga
