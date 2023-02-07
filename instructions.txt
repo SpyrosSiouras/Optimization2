@@ -1,2 +1,4 @@
 g++ oop_ga.cpp -o oop
 ./oop_ga
+
+O pso δεν λειτουργεί σωστά, δεν ξέρω γιατί. Το csvWriter είναι για copy paste για αποτελέσματα. Η main βρίσκεται στην oop_ga αυτήν την στιγμή. 
