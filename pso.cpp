@@ -4,6 +4,10 @@
 #include <random>
 #include <fstream>
 #include <algorithm>
+#include <limits>
+#include <mutex>
+
+std::mutex logMutex;
 
 
 class Particle {
@@ -32,6 +36,7 @@ public:
   double inertia_weight;
   double cognitive_weight;
   double social_weight;
+  double a;
   double max_velocity;
   std::vector<Particle> particles;
   std::vector<double> global_best_position;
@@ -40,18 +45,22 @@ public:
   std::vector<double> realPValues;
   std::vector<double> realQValues;
   int functionCalls;
+  int badLocalCounter;
   const double min_value = 0.1;
   const double max_value = 3.0;
 
-  PSO(int n, int d, double w, double c1, double c2, double v_max)
+  PSO(int n, int d, double w, double c1, double c2, double a)
     : num_particles(n), num_dimensions(d), inertia_weight(w),
-      cognitive_weight(c1), social_weight(c2), max_velocity(v_max) {
+      cognitive_weight(c1), social_weight(c2), a(a) {
+    max_velocity = 0.1*(3 - 0.1);
     global_best_position.resize(d);
     global_best_fitness = 1e9;
-    loadData();
     functionCalls = 0;
-    for (auto& x: realPValues)
-     std::cout<<x << " ";
+    badLocalCounter = 0;
+    loadData();
+
+    // for (auto& x: realPValues)
+    //  std::cout<<x << " ";
   }
 
   void loadData() {
@@ -66,12 +75,11 @@ public:
         realQValues.emplace_back(b);
     }
 
+
     file.close();  // Close the file
 }
 
-  double calculateAbsoluteRelativeError(double prediction, double real_value){
-    return abs(prediction - real_value ) / real_value;
-}
+
 
 //   double fitness(std::vector<double> x) {
 //     double f = 0.0;
@@ -83,8 +91,12 @@ public:
 //     return f;
 //   }
 
+  double calculateAbsoluteRelativeError(double prediction, double real_value){
+    return abs(prediction - real_value ) / real_value;
+}
+
   double fitness(std::vector<double>& x) {
-        
+
         double r = x[0];
         double K = x[1];
         double s = x[2];
@@ -101,9 +113,10 @@ public:
         for (int i = 1; i < 101; i++){
             currentP = currentP + deltaP;
             currentQ = currentQ + deltaQ;
-            double errorP = calculateAbsoluteRelativeError(currentP, realPValues[i]);
-            std::cout<<errorP<<std::endl;
-            double errorQ = calculateAbsoluteRelativeError(currentQ, realQValues[i]);
+            double errorP = fabs(currentP - realPValues[i] ) / realPValues[i];
+            double errorQ = fabs(currentQ - realQValues[i] ) / realQValues[i];
+
+            // std::cout<<"Error of P: " << fabs(realPValues[i] )  << ", " << "Error of Q: " << fabs(realQValues[i] ) << std::endl;
 
             errorsOfP.emplace_back(errorP);
             errorsOfQ.emplace_back(errorQ);
@@ -111,21 +124,18 @@ public:
             deltaP = (r * (1 - currentP / K) - s*currentQ) * currentP;
             deltaQ = (-u + v*currentP)*currentQ;
         }
-
+        
+        // int c;
+        // std::cin >> c;
         double maxErrorP = *max_element(errorsOfP.begin(), errorsOfP.end());
         double maxErrorQ = *max_element(errorsOfQ.begin(), errorsOfQ.end());
 
-        // if (maxErrorP == 0) {
-        //     for(auto& e: errorsOfP)
-        //         std::cout << e << " ";
-        // }
-        // std::cout << "MaxErrorP: " << maxErrorP << std::endl;
-        // std::cout << "MaxErrorQ: " << maxErrorQ << std::endl;
 
         errorsOfP.clear();
         errorsOfQ.clear();
-        // cout<< maxErrorP << maxErrorQ << endl;
         functionCalls++;
+        double error = std::max(maxErrorP, maxErrorQ);
+
         return std::max(maxErrorP, maxErrorQ);
 
 
@@ -133,7 +143,8 @@ public:
 
   void initialize() {
     particles.resize(num_particles);
-    std::mt19937 generator(0);
+    std::random_device rd;
+    std::mt19937 generator(rd());
     std::uniform_real_distribution<double> dist(0.1, 3.0);
   for (int i = 0; i < num_particles; i++) {
     particles[i] = Particle(num_dimensions); 
@@ -151,8 +162,13 @@ public:
 }
 
   void update() {
-    std::mt19937 generator(0);
+    std::random_device rd;
+
+    std::mt19937 generator(rd());
     std::uniform_real_distribution<double> dist(0.0, 1.0);
+    // if (functionCalls % 50000 == 0){
+    //         max_velocity /= 2;
+    //     }
     for (int i = 0; i < num_particles; i++) {
             Particle& p = particles[i];
       for (int j = 0; j < num_dimensions; j++) {
@@ -171,12 +187,43 @@ public:
         // Constrain values to a specific range of values
         if (p.position[j] < min_value) {
           p.position[j] = min_value;
+        //   max_velocity = max_velocity * 0.75;
+        //   p.position[0] -= 0.01;
         }
         if (p.position[j]> max_value) {
           p.position[j] = max_value;
+        //   max_velocity = max_velocity * 0.75;
+        //   p.position[4] += 0.01;
         }
+
+
         // std::cout<< "Best fitness so far: "<< global_best_fitness << std::endl;
 
+      }
+
+      if ( p.best_fitness > 0.05){
+            std::random_device rd;  // seed for random number engine
+            std::mt19937 gen(rd());  // Mersenne Twister random number engine
+            std::uniform_real_distribution<> dis(-1, 1);
+            if (badLocalCounter > 500){
+                // std::cout<<"Before noise: " << fitness(p.position) << std::endl;
+
+                 p.position[0] -= 0.08;
+                 p.position[4] += 0.08;
+                // for (int i = 0; i < 5; i++) 
+                //     p.position[i] += dis(gen);
+                //  std::cout<<"Adding noise: " << fitness(p.position) << std::endl;
+                //  functionCalls-=2;
+                 badLocalCounter = 0;
+
+            }
+
+
+        a*= 1.2;
+      }
+
+      else if (p.best_fitness < 0.05){
+        a /= 2;
       }
     
       double f = fitness(p.position);
@@ -194,23 +241,84 @@ public:
 };
 
 
+std::vector<double> PSO_experiment(double accuracy, int maxFunctionCalls) {
+
+      PSO pso(50, 5, 0.729, 2.05, 2.05, 1.5);
+      pso.initialize();
+      
+      while (pso.global_best_fitness > accuracy && pso.functionCalls < maxFunctionCalls) {
+        pso.update();
+        pso.badLocalCounter++;
+      }
+      
+      
+      std::cout << "Global best position: (";
+      for (int j = 0; j < pso.num_dimensions - 1; j++) {
+        std::cout << pso.global_best_position[j] << ", ";
+      }
+      std::cout << pso.global_best_position[pso.num_dimensions - 1] << ")\n";
+      std::cout << "Global best fitness: " << pso.global_best_fitness << "\n";
+      std::cout << "Function calls: " << pso.functionCalls << "\n";
+      
+      std::vector<double> results;
+      results.emplace_back(pso.global_best_fitness);
+      for (auto &x: pso.global_best_position)
+        results.emplace_back(x);
+      results.emplace_back(pso.functionCalls);
+      
+      return results;
+}
+
+bool fileExists(std::string& fileName) {
+    return static_cast<bool>(std::ifstream(fileName));
+}
+
+template <typename filename, typename T1, typename T2, typename T3,typename T4 ,typename T5 ,typename T6,typename T7>
+bool writeCsvFile(filename &fileName, T1 column1, T2 column2, T3 column3, T4 column4, T5 column5, T6 column6, T7 column7) {
+    std::lock_guard<std::mutex> csvLock(logMutex);
+    std::fstream file;
+    file.open (fileName, std::ios::out | std::ios::app);
+    if (file) {
+        file << column1 << ",";
+        file << column2 << ",";
+        file << column3 << ",";
+        file << column4 << ",";
+        file << column5 << ",";
+        file << column6 << ",";
+        file << column7 << " ";
+
+        file <<  std::endl;
+        return true;
+    } else {
+        return false;
+    }
+}
+
 
 
 int main() {
-  PSO pso(100, 5, 0.7298, 1.49618, 1.49618, 2.5);
-  pso.initialize();
-  for (int i = 0; i < 1000; i++) {
-    pso.update();
 
-  }
+  std::string csvFile = "resultsPSO.csv";
 
+  double accuracy = 0.035;
+  int maxFunctionCalls = 1000000;
   
-  std::cout << "Global best position: (";
-  for (int j = 0; j < pso.num_dimensions - 1; j++) {
-    std::cout << pso.global_best_position[j] << ", ";
+  for (int i=0; i<30; i++){
+    std::vector<double> res = PSO_experiment(accuracy, maxFunctionCalls);
+    
+    if(!fileExists(csvFile))
+        writeCsvFile(csvFile, "fitness", "r", "K", "s", "u", "v", "functionCalls");
+    double fitness = res[0];
+    double r = res[1];
+    double K = res[2];
+    double s = res[3];
+    double u = res[4];
+    double v = res[5];
+    int functionCalls = res[6];
+    if (!writeCsvFile(csvFile, fitness,r, K, s, u, v, functionCalls)) {
+        std::cerr << "Failed to write to file: " << csvFile << "\n";
+        }
   }
-  std::cout << pso.global_best_position[pso.num_dimensions - 1] << ")\n";
-  std::cout << "Global best fitness: " << pso.global_best_fitness << "\n";
   return 0;
 }
 

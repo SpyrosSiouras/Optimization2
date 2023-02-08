@@ -233,7 +233,7 @@ void PredatorPreyGA:: loadData() {
 }
 
 double PredatorPreyGA:: calculateAbsoluteRelativeError(double prediction, double real_value){
-    return abs(prediction - real_value ) / real_value;
+    return fabs(prediction - real_value ) / real_value;
 }
 
 
@@ -277,6 +277,8 @@ double PredatorPreyGA:: fitness(vector<double>& individual) {
             currentQ = currentQ + deltaQ;
             double errorP = calculateAbsoluteRelativeError(currentP, realPValues[i]);
             double errorQ = calculateAbsoluteRelativeError(currentQ, realQValues[i]);
+            
+            // std::cout<<"Error of P: " << errorP << ", " << "Error of Q: " << errorQ << std::endl;
 
             errorsOfP.emplace_back(errorP);
             errorsOfQ.emplace_back(errorQ);

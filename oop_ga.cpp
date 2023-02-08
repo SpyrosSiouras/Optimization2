@@ -1,5 +1,4 @@
 #include "geneticAlgorithm.hpp"
-#include "GA_configuration.hpp"
 
 bool fileExists(std::string& fileName) {
     return static_cast<bool>(std::ifstream(fileName));
