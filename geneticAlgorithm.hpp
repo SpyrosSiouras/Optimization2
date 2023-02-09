@@ -106,77 +106,7 @@ vector<vector<double>> GeneticAlgorithm:: initializePopulation() {
         return population;
     }
 
-// Rosenbrock
-class RosenbrockGA : public GeneticAlgorithm {
-public:
-    RosenbrockGA(int populationSize, int numGenerations, double mutationRate, double crossoverRate, double eliteRate, double accuracy) :
-        GeneticAlgorithm(populationSize, numGenerations, mutationRate, crossoverRate, eliteRate, accuracy) {}
 
-protected:
-    vector<double>initializeIndividual();
-    double fitness(vector<double>individual);
-    vector<vector<double>> evolvePopulation();
-};
-
-
-vector<double>RosenbrockGA:: initializeIndividual() {
-        vector<double>individual(2);
-        random_device rd;
-        mt19937 gen(rd());
-        uniform_real_distribution<> dis(-3, 3);
-        individual[0] = dis(gen);
-        individual[1] = dis(gen);
-        return individual;
-    }
-
-
-double RosenbrockGA:: fitness(vector<double>individual) {
-        double x = individual[0];
-        double y = individual[1];
-        return pow(1-x,2) + 100*pow(y-x*x,2);
-    }
-
-vector<vector<double>> RosenbrockGA:: evolvePopulation() {
-        
-        vector<vector<double>> newPopulation;
-        random_device rd;
-        mt19937 gen(rd());
-        uniform_real_distribution<> dis(0, 1);
-        uniform_real_distribution<> crRate(-0.25, 1.25);
-        uniform_int_distribution<> idx(0, population.size() - 1);
-
-        sort(population.begin(), population.end(), [this] (vector<double> a, vector<double> b) { return fitness(a) < fitness(b); });
-        int eliteSize = populationSize * eliteRate;
-        vector<vector<double>> elite(population.begin(), population.begin() + eliteSize);
-
-        while (newPopulation.size() < populationSize - eliteSize) {
-            
-            vector<double>parent1 = population[idx(gen)];
-            vector<double>parent2 = population[idx(gen)];
-
-            vector<double>offspring = parent1;
-
-            if (dis(gen) < crossoverRate) {
-                for (int i = 0; i < 2; i++) {
-                    double crossoverPoint = crRate(gen);
-                    offspring[i] = crossoverPoint * parent1[i] + (1 - crossoverPoint) * parent2[i];
-                }
-            }
-
-            for (int i = 0; i < 2; i++) {
-                if (dis(gen) < mutationRate) {
-                    double a = 1;
-                    while (offspring[i] + a > 6 || offspring[i] - a < -6)
-                        a /= 2;
-                    uniform_real_distribution<> mutationRate(-a, a);
-                    offspring[i] += mutationRate(gen);
-                }
-            }
-            newPopulation.push_back(offspring);
-        }
-        newPopulation.insert(newPopulation.end(), elite.begin(), elite.end());
-        return newPopulation;
-}
 
 class PredatorPreyGA : public GeneticAlgorithm {
 public:
