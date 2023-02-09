@@ -27,7 +27,7 @@ bool writeCsvFile(filename &fileName, T1 column1, T2 column2, T3 column3, T4 col
 
 int main() {
 
-    std::string csvFile = "resultsGeneticAlgorithm.csv";
+    std::string csvFile = "resultsGeneticAlgorithmNoNoise.csv";
     // RosenbrockGA ga(1000, 3000, 0.05, 0.7, 0.1, 0.00005);
     //             ga(POPULATION_SIZE, NUMBER_OF_GENERATIONS, MUTATION_RATE, CROSSOVER_RATE, ELITE_RATE, ACCURACY);
     

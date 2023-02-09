@@ -47,40 +47,37 @@ public:
   int functionCalls;
   int badLocalCounter;
   const double min_value = 0.1;
-  const double max_value = 3.0;
+  const double max_value = 3;
 
   PSO(int n, int d, double w, double c1, double c2, double a)
     : num_particles(n), num_dimensions(d), inertia_weight(w),
       cognitive_weight(c1), social_weight(c2), a(a) {
-    max_velocity = 0.1*(3 - 0.1);
+    max_velocity = a*(max_value - min_value);
     global_best_position.resize(d);
     global_best_fitness = 1e9;
     functionCalls = 0;
     badLocalCounter = 0;
     loadData();
 
-    // for (auto& x: realPValues)
-    //  std::cout<<x << " ";
+
   }
 
   void loadData() {
 
-    std::ifstream file("data.txt");  // Open the input file
-    float a, b;                       // Variables to store the data
+    std::ifstream file("data.txt"); 
+    float a, b; 
 
-    // Read data from the file
     while (file >> a >> b) {
-        // Do something with the data
         realPValues.emplace_back(a);
         realQValues.emplace_back(b);
+
     }
 
-
-    file.close();  // Close the file
+    file.close();
 }
 
 
-
+//   ROSENBROCK: CHANGE DIMENSION IN EXPERIMENT TO 2. SHOULD CHANGE ACCURACY AND NUMBER OF PARTICLES FOR BETTER RESULTS
 //   double fitness(std::vector<double> x) {
 //     double f = 0.0;
 //     for (int i = 0; i < num_dimensions - 1; i++) {
@@ -88,6 +85,8 @@ public:
 //       double x_i1 = x[i + 1];
 //       f += 100.0 * pow(x_i1 - x_i * x_i, 2) + pow(x_i - 1, 2);
 //     }
+//     functionCalls++;
+
 //     return f;
 //   }
 
@@ -116,20 +115,15 @@ public:
             double errorP = fabs(currentP - realPValues[i] ) / realPValues[i];
             double errorQ = fabs(currentQ - realQValues[i] ) / realQValues[i];
 
-            // std::cout<<"Error of P: " << fabs(realPValues[i] )  << ", " << "Error of Q: " << fabs(realQValues[i] ) << std::endl;
-
             errorsOfP.emplace_back(errorP);
             errorsOfQ.emplace_back(errorQ);
 
             deltaP = (r * (1 - currentP / K) - s*currentQ) * currentP;
             deltaQ = (-u + v*currentP)*currentQ;
         }
-        
-        // int c;
-        // std::cin >> c;
+
         double maxErrorP = *max_element(errorsOfP.begin(), errorsOfP.end());
         double maxErrorQ = *max_element(errorsOfQ.begin(), errorsOfQ.end());
-
 
         errorsOfP.clear();
         errorsOfQ.clear();
@@ -138,39 +132,42 @@ public:
 
         return std::max(maxErrorP, maxErrorQ);
 
-
-  }
+   }
 
   void initialize() {
     particles.resize(num_particles);
     std::random_device rd;
     std::mt19937 generator(rd());
     std::uniform_real_distribution<double> dist(0.1, 3.0);
-  for (int i = 0; i < num_particles; i++) {
-    particles[i] = Particle(num_dimensions); 
-    for (int j = 0; j < num_dimensions; j++) {
-      particles[i].position[j] = dist(generator);
-      particles[i].velocity[j] = dist(generator) * max_velocity;
+
+    for (int i = 0; i < num_particles; i++) {
+      particles[i] = Particle(num_dimensions); 
+
+      for (int j = 0; j < num_dimensions; j++) {
+        particles[i].position[j] = dist(generator);
+        particles[i].velocity[j] = dist(generator) * max_velocity;
+      }
+
+      particles[i].best_position = particles[i].position;
+      particles[i].best_fitness = fitness(particles[i].position);
+
+      if (particles[i].best_fitness < global_best_fitness) {
+        global_best_fitness = particles[i].best_fitness;
+        global_best_position = particles[i].position;
+
+      }
     }
-    particles[i].best_position = particles[i].position;
-    particles[i].best_fitness = fitness(particles[i].position);
-    if (particles[i].best_fitness < global_best_fitness) {
-      global_best_fitness = particles[i].best_fitness;
-      global_best_position = particles[i].position;
-    }
-  }
 }
 
   void update() {
-    std::random_device rd;
 
+    std::random_device rd;
     std::mt19937 generator(rd());
     std::uniform_real_distribution<double> dist(0.0, 1.0);
-    // if (functionCalls % 50000 == 0){
-    //         max_velocity /= 2;
-    //     }
+
     for (int i = 0; i < num_particles; i++) {
-            Particle& p = particles[i];
+
+      Particle& p = particles[i];
       for (int j = 0; j < num_dimensions; j++) {
         double r1 = dist(generator);
         double r2 = dist(generator);
@@ -182,54 +179,27 @@ public:
         } else if (p.velocity[j] < -max_velocity) {
           p.velocity[j] = -max_velocity;
         }
+
         p.position[j] += p.velocity[j];
 
         // Constrain values to a specific range of values
         if (p.position[j] < min_value) {
           p.position[j] = min_value;
-        //   max_velocity = max_velocity * 0.75;
-        //   p.position[0] -= 0.01;
+          p.velocity[j] = - p.velocity[j];
         }
+        
         if (p.position[j]> max_value) {
           p.position[j] = max_value;
-        //   max_velocity = max_velocity * 0.75;
-        //   p.position[4] += 0.01;
+          p.velocity[j] = - p.velocity[j];
         }
 
-
-        // std::cout<< "Best fitness so far: "<< global_best_fitness << std::endl;
-
-      }
-
-      if ( p.best_fitness > 0.05){
-            std::random_device rd;  // seed for random number engine
-            std::mt19937 gen(rd());  // Mersenne Twister random number engine
-            std::uniform_real_distribution<> dis(-1, 1);
-            if (badLocalCounter > 500){
-                // std::cout<<"Before noise: " << fitness(p.position) << std::endl;
-
-                 p.position[0] -= 0.08;
-                 p.position[4] += 0.08;
-                // for (int i = 0; i < 5; i++) 
-                //     p.position[i] += dis(gen);
-                //  std::cout<<"Adding noise: " << fitness(p.position) << std::endl;
-                //  functionCalls-=2;
-                 badLocalCounter = 0;
-
-            }
-
-
-        a*= 1.2;
-      }
-
-      else if (p.best_fitness < 0.05){
-        a /= 2;
       }
     
       double f = fitness(p.position);
       if (f < p.best_fitness) {
         p.best_fitness = f;
         p.best_position = p.position;
+
         if (f < global_best_fitness) {
           global_best_fitness = f;
           global_best_position = p.best_position;
@@ -240,34 +210,6 @@ public:
 
 };
 
-
-std::vector<double> PSO_experiment(double accuracy, int maxFunctionCalls) {
-
-      PSO pso(50, 5, 0.729, 2.05, 2.05, 1.5);
-      pso.initialize();
-      
-      while (pso.global_best_fitness > accuracy && pso.functionCalls < maxFunctionCalls) {
-        pso.update();
-        pso.badLocalCounter++;
-      }
-      
-      
-      std::cout << "Global best position: (";
-      for (int j = 0; j < pso.num_dimensions - 1; j++) {
-        std::cout << pso.global_best_position[j] << ", ";
-      }
-      std::cout << pso.global_best_position[pso.num_dimensions - 1] << ")\n";
-      std::cout << "Global best fitness: " << pso.global_best_fitness << "\n";
-      std::cout << "Function calls: " << pso.functionCalls << "\n";
-      
-      std::vector<double> results;
-      results.emplace_back(pso.global_best_fitness);
-      for (auto &x: pso.global_best_position)
-        results.emplace_back(x);
-      results.emplace_back(pso.functionCalls);
-      
-      return results;
-}
 
 bool fileExists(std::string& fileName) {
     return static_cast<bool>(std::ifstream(fileName));
@@ -294,17 +236,43 @@ bool writeCsvFile(filename &fileName, T1 column1, T2 column2, T3 column3, T4 col
     }
 }
 
+std::vector<double> psoExperiment(double accuracy, int maxFunctionCalls) {
 
+      PSO pso(100, 5, 0.729, 2.05, 2.05, 0.1);
+      pso.initialize();
+      
+      while (pso.global_best_fitness > accuracy && pso.functionCalls < maxFunctionCalls) {
+        pso.update();
+        pso.badLocalCounter++;
+      }
+      
+      
+      std::cout << "Global best position: (";
+      for (int j = 0; j < pso.num_dimensions - 1; j++) {
+        std::cout << pso.global_best_position[j] << ", ";
+      }
+      std::cout << pso.global_best_position[pso.num_dimensions - 1] << ")\n";
+      std::cout << "Global best fitness: " << pso.global_best_fitness << "\n";
+      std::cout << "Function calls: " << pso.functionCalls << "\n";
+      
+      std::vector<double> results;
+      results.emplace_back(pso.global_best_fitness);
+      for (auto &x: pso.global_best_position)
+        results.emplace_back(x);
+      results.emplace_back(pso.functionCalls);
+      
+      return results;
+}
 
 int main() {
 
-  std::string csvFile = "resultsPSO.csv";
+  std::string csvFile = "PSO.csv";
 
   double accuracy = 0.035;
   int maxFunctionCalls = 1000000;
   
   for (int i=0; i<30; i++){
-    std::vector<double> res = PSO_experiment(accuracy, maxFunctionCalls);
+    std::vector<double> res = psoExperiment(accuracy, maxFunctionCalls);
     
     if(!fileExists(csvFile))
         writeCsvFile(csvFile, "fitness", "r", "K", "s", "u", "v", "functionCalls");

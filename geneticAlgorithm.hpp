@@ -6,7 +6,7 @@
 #include <fstream>
 #include <mutex>
 
-const int MAX_FUNCTION_CALLS = 4000000;
+const int MAX_FUNCTION_CALLS = 1000000;
 using namespace std;
 
 std::mutex logMutex;
@@ -252,11 +252,11 @@ vector<double>PredatorPreyGA:: initializeIndividual() {
 
 double PredatorPreyGA:: fitness(vector<double>& individual) {
 
-        if (badLocalMinCounter > 250)
-        {
-            individual[0] -= 0.08;
-            individual[4] += 0.08;
-        }
+        // if (badLocalMinCounter > 250)
+        // {
+        //     individual[0] -= 0.08;
+        //     individual[4] += 0.08;
+        // }
         double r = individual[0];
         double K = individual[1];
         double s = individual[2];
