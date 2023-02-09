@@ -11,7 +11,6 @@ int main() {
     for (int i=0; i < 30; i++) {
         
         PredatorPreyGA ga(800, 10000, 0.05, 0.7, 0.1, 0.035);
-        // ga.printData();
         ga.run();
 
         if(!fileExists(csvFile))

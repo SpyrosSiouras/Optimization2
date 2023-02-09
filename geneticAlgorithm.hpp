@@ -4,7 +4,6 @@
 #include <random>
 #include <map>
 #include <fstream>
-#include <mutex>
 
 const int MAX_FUNCTION_CALLS = 1000000;
 using namespace std;
@@ -217,17 +216,17 @@ private:
 
 void PredatorPreyGA:: loadData() {
 
-    std::ifstream file("data.txt");  // Open the input file
-    float a, b;                       // Variables to store the data
+    std::ifstream file("data.txt");  
+    float a, b;                      
 
-    // Read data from the file
+   
     while (file >> a >> b) {
-        // Do something with the data
+
         realPValues.emplace_back(a);
         realQValues.emplace_back(b);
     }
 
-    file.close();  // Close the file
+    file.close();  
 }
 
 double PredatorPreyGA:: calculateAbsoluteRelativeError(double prediction, double real_value){
@@ -250,11 +249,11 @@ vector<double>PredatorPreyGA:: initializeIndividual() {
 
 double PredatorPreyGA:: fitness(vector<double>& individual) {
 
-        // if (badLocalMinCounter > 250)
-        // {
-        //     individual[0] -= 0.08;
-        //     individual[4] += 0.08;
-        // }
+        if (badLocalMinCounter > 250)
+        {
+            individual[0] -= 0.08;
+            individual[4] += 0.08;
+        }
         double r = individual[0];
         double K = individual[1];
         double s = individual[2];
@@ -340,9 +339,8 @@ vector<vector<double>> PredatorPreyGA:: evolvePopulation() {
                         coef = 100 * sqrt(numGenerations)* log(numGenerations);
                         badLocalMinCounter = 0;
                     }
-                    // double a = min(pow(5, bestOfGeneration) / (sqrt(numGenerations) * log(numGenerations)), 3.0);
+                    
                     double a = (1.5 * coef) / (sqrt(numGenerations)* log(numGenerations));
-                    // double a = min(pow(1.5, bestOfGeneration), 1.5) / log(numGenerations);
                     int count = 0;
                     while (offspring[i] + a > 3 || offspring[i] - a < 0.1) {
                         if (count > 5){
