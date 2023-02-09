@@ -9,8 +9,6 @@
 const int MAX_FUNCTION_CALLS = 1000000;
 using namespace std;
 
-std::mutex logMutex;
-
 
 class GeneticAlgorithm {
 public:
