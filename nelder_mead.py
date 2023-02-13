@@ -3,7 +3,9 @@ import pandas as pd
 from math import log10
 import csv
 
-
+data = pd.read_csv("data.csv", header=None)
+p = data[0].to_list()
+q = data[1].to_list()
 
 def rosenbrock(x):
     global function_calls
@@ -11,10 +13,9 @@ def rosenbrock(x):
     return (1-x[0])**2 + 100*(x[1]-x[0]**2)**2
 
 def predator_prey(x):
-    global function_calls
+    global function_calls, q, p
     function_calls +=1
-    p = data[0].to_list()
-    q = data[1].to_list()
+
 
     p_pred = [1]
     q_pred = [1]
@@ -65,6 +66,7 @@ def nelder_mead(func, x0, bounds,alpha=1, gamma=2, rho=-0.5, sigma=0.5, epsilon=
     
     for i in range(1,max_iter):
         print(f"Iteration: {i}, best so far = {simplex[0]}, functioncalls: {function_calls}")
+        
         simplex = np.array(sorted(simplex, key=lambda x: func(x)))
         x_bar = np.mean(simplex[:-1], axis=0)
 
@@ -98,28 +100,34 @@ def nelder_mead(func, x0, bounds,alpha=1, gamma=2, rho=-0.5, sigma=0.5, epsilon=
                 simplex[-2] = x_bar + sigma * (simplex[-2] - x_bar)
         
 
-        if func(simplex[0]) < epsilon or function_calls > 1_000_000:
-            print(f"Reached wanted accuracy!")
-            print()
-            break
         
-        if i % 500 == 0:
+        if i % 200 == 0:
             
-            coef = (log10(i+2))
+            coef = 2*log10(i+2)
             for j in range(3): 
                 for k in range(len(x0) - 1):
 
                     simplex[j, k] += np.random.uniform(low= (-1  / coef) , high= (1  / coef) )
-                
         
-        if i > 3000: 
-           
-            x0 = np.random.uniform(low=0.1, high=3,size= len(x0))
-            return (nelder_mead(func, x0, bounds, 0.035, max_iter = 3100))
-
         for j in range(3):
             for k in range(len(x0)):
                 simplex[j,k] =  max(bounds[k][0], min(simplex[j, k], bounds[k][1]))
+                
+        if func(simplex[0]) < epsilon or function_calls > 100_000:
+            print(f"Reached wanted accuracy!")
+            print()
+            break
+
+        if i > 2000: 
+            if func(simplex[0]) > 0.1: 
+                x0 = np.random.uniform(low=0.1, high=3,size= len(x0))
+                return (nelder_mead(func, x0, bounds, epsilon=0.035, max_iter = 2100))
+            else:
+                return (nelder_mead(func, simplex[0], bounds, epsilon=0.035, max_iter = 2100))
+
+
+        
+
     
     return simplex[0]
 
@@ -141,18 +149,16 @@ def run(func, x_size, accuracy, max_iterations):
 
 if __name__ == "__main__":
     global function_calls
+
     
     function_calls = 0
-    data = pd.read_csv("data.csv", header=None)
-    # run(rosenbrock, 2, 1e-6, 100)
+
+    for _ in range(30):
+
+        results = run(predator_prey, x_size = 5, accuracy = 0.035, max_iterations = 2100)
 
 
-    for _ in range(10):
-
-        results = run(predator_prey, x_size = 5, accuracy = 0.035, max_iterations = 6000)
-
-
-        with open("nelderMead.csv", 'a', encoding='UTF8', newline='') as f:
+        with open("nelderMead2.csv", 'a', encoding='UTF8', newline='') as f:
 
             writer = csv.writer(f)
 

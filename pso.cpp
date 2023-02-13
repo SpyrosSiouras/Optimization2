@@ -42,9 +42,8 @@ public:
   std::vector<double> realPValues;
   std::vector<double> realQValues;
   int functionCalls;
-  int badLocalCounter;
   const double min_value = 0.1;
-  const double max_value = 3;
+  const double max_value = 3.0;
 
   PSO(int n, int d, double w, double c1, double c2, double a)
     : num_particles(n), num_dimensions(d), inertia_weight(w),
@@ -53,7 +52,6 @@ public:
     global_best_position.resize(d);
     global_best_fitness = 1e9;
     functionCalls = 0;
-    badLocalCounter = 0;
     loadData();
 
 
@@ -74,18 +72,7 @@ public:
 }
 
 
-//   ROSENBROCK: CHANGE DIMENSION IN EXPERIMENT TO 2. SHOULD CHANGE ACCURACY AND NUMBER OF PARTICLES FOR BETTER RESULTS
-//   double fitness(std::vector<double> x) {
-//     double f = 0.0;
-//     for (int i = 0; i < num_dimensions - 1; i++) {
-//       double x_i = x[i];
-//       double x_i1 = x[i + 1];
-//       f += 100.0 * pow(x_i1 - x_i * x_i, 2) + pow(x_i - 1, 2);
-//     }
-//     functionCalls++;
 
-//     return f;
-//   }
 
   double calculateAbsoluteRelativeError(double prediction, double real_value){
     return abs(prediction - real_value ) / real_value;
@@ -135,7 +122,8 @@ public:
     particles.resize(num_particles);
     std::random_device rd;
     std::mt19937 generator(rd());
-    std::uniform_real_distribution<double> dist(0.1, 3.0);
+    std::uniform_real_distribution<double> dist(min_value * 5, max_value - 1);
+
 
     for (int i = 0; i < num_particles; i++) {
       particles[i] = Particle(num_dimensions); 
@@ -144,6 +132,7 @@ public:
         particles[i].position[j] = dist(generator);
         particles[i].velocity[j] = dist(generator) * max_velocity;
       }
+
 
       particles[i].best_position = particles[i].position;
       particles[i].best_fitness = fitness(particles[i].position);
@@ -168,9 +157,9 @@ public:
       for (int j = 0; j < num_dimensions; j++) {
         double r1 = dist(generator);
         double r2 = dist(generator);
-        p.velocity[j] = inertia_weight * p.velocity[j] +
+        p.velocity[j] = inertia_weight * (p.velocity[j] +
                         cognitive_weight * r1 * (p.best_position[j] - p.position[j]) +
-                        social_weight * r2 * (global_best_position[j] - p.position[j]);
+                        social_weight * r2 * (global_best_position[j] - p.position[j]));
         if (p.velocity[j] > max_velocity) {
           p.velocity[j] = max_velocity;
         } else if (p.velocity[j] < -max_velocity) {
@@ -193,7 +182,10 @@ public:
       }
     
       double f = fitness(p.position);
+
+
       if (f < p.best_fitness) {
+
         p.best_fitness = f;
         p.best_position = p.position;
 
@@ -201,6 +193,7 @@ public:
           global_best_fitness = f;
           global_best_position = p.best_position;
         }
+
       }
     }
   }
@@ -211,13 +204,13 @@ public:
 
 std::vector<double> psoExperiment(double accuracy, int maxFunctionCalls) {
 
-      PSO pso(100, 5, 0.729, 2.05, 2.05, 0.1);
+      PSO pso(3000, 5, 0.729, 2.05, 2.05, 0.1);
       pso.initialize();
-      
+
       while (pso.global_best_fitness > accuracy && pso.functionCalls < maxFunctionCalls) {
         pso.update();
-        pso.badLocalCounter++;
       }
+
       
       
       std::cout << "Global best position: (";
@@ -228,6 +221,7 @@ std::vector<double> psoExperiment(double accuracy, int maxFunctionCalls) {
       std::cout << "Global best fitness: " << pso.global_best_fitness << "\n";
       std::cout << "Function calls: " << pso.functionCalls << "\n";
       
+
       std::vector<double> results;
       results.emplace_back(pso.global_best_fitness);
       for (auto &x: pso.global_best_position)
